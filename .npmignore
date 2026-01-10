@@ -1,0 +1,12 @@
+src/
+node_modules/
+tsconfig.json
+tsconfig.build.json
+tsconfig.cjs.json
+tsconfig.types.json
+.vscode/
+.eslintcache
+coverage/
+*.log
+.env
+.env.test
