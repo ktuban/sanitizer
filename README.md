@@ -50,8 +50,8 @@ Built with:
 
 If this library helps you build safer systems, consider supporting ongoing development:
 
-- [PayPal.me/YOURNAME](https://paypal.me/KhalilTuban)  
-- [Ko‑fi.com/YOURNAME](https://ko-fi.com/ktuban)
+- [PayPal.me/khaliltuban](https://paypal.me/KhalilTuban)  
+- [Ko‑fi.com/ktuban](https://ko-fi.com/ktuban)
 
 Your support helps keep the project maintained, secure, and evolving.
 
