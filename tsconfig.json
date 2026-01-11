@@ -13,7 +13,7 @@
     "sourceMap": true,
     "baseUrl": "./src",
     "paths": {
-      "@k/sanitizer/*": ["./*"]
+      "@ktuban/sanitizer/*": ["./*"]
     }
   },
   "include": ["src"],

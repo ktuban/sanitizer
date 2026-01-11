@@ -16,7 +16,7 @@ Older, unsupported versions will not receive fixes.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in `@k/sanitizer`:
+If you discover a security vulnerability in `@ktuban/sanitizer`:
 
 - **Do not open a public issue.**
 - **Do not disclose publicly until a fix is released.**
@@ -41,7 +41,7 @@ We will acknowledge receipt within **48 hours** and provide a timeline for inves
 
 ## Security Philosophy
 
-`@k/sanitizer` is built with a **defense‑in‑depth** model:
+`@ktuban/sanitizer` is built with a **defense‑in‑depth** model:
 
 - Strict input validation and sanitization
 - Prototype pollution detection
@@ -56,7 +56,7 @@ We benchmark against **OWASP ASVS**, **PCI‑DSS**, and **NIST 800‑53** guidel
 
 ## Best Practices for Users
 
-To maximize security when using `@k/sanitizer`:
+To maximize security when using `@ktuban/sanitizer`:
 
 - Always run the latest version.
 - Configure environment presets (`production`, `staging`, `development`, `test`) appropriately.
@@ -80,4 +80,4 @@ If you report a vulnerability, we will:
 ## Contact
 
 - Security advisories: [GitHub Security Advisories](https://github.com/ktuban/sanitizer/security/advisories)  
-- Email: **security@yourdomain.com**  
+- Email: dev.tuban@hotmail.com.com  

@@ -2,8 +2,8 @@
 # Configure GitHub Sponsors and external funding links
 
 github: ktuban          # Your GitHub username (enables GitHub Sponsors profile link)
-patreon: []             # Optional: add Patreon username if you use Patreon
-open_collective: []     # Optional: add Open Collective slug if you use it
+#patreon: []             # Optional: add Patreon username if you use Patreon
+#open_collective: []     # Optional: add Open Collective slug if you use it
 ko_fi: ktuban           # Replace with your Ko‑fi username if you want Ko‑fi support
 custom:
   - https://paypal.me/khaliltuban

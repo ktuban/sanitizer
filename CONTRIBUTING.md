@@ -1,4 +1,4 @@
-# Contributing to @k/sanitizer
+# Contributing to @ktuban/sanitizer
 
 Thanks for your interest in contributing!  
 This project aims to provide a high‑security, extensible sanitization framework with strong guarantees, predictable behavior, and excellent developer experience. Contributions that improve security, correctness, performance, documentation, or developer tooling are always welcome.
@@ -28,7 +28,7 @@ Please ensure:
    npm test
 
 ## 2. Diagnostics suite passes
-import { sanitizationDiagnostics } from "@k/sanitizer";
+import { sanitizationDiagnostics } from "@ktuban/sanitizer";
 await sanitizationDiagnostics.run({ deep: true });
 
 ## 3. Linting passes 

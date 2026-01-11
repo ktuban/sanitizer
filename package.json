@@ -1,26 +1,24 @@
 {
-  "name": "@k/sanitizer",
+  "name": "@ktuban/sanitizer",
   "version": "1.0.0",
   "description": "High-security, extensible sanitization engine with validators, security layers, diagnostics, and environment-aware configuration.",
-  "author": "K",
+  "author": "K Tuban",
   "license": "MIT",
   "funding": [
-  {
-    "type": "paypal",
-    "url": "https://paypal.me/YOURNAME"
-  },
-  {
-    "type": "ko-fi",
-    "url": "https://ko-fi.com/YOURNAME"
-  }
-],
+    {
+      "type": "paypal",
+      "url": "https://paypal.me/Khaliltuban"
+    },
+    {
+      "type": "ko-fi",
+      "url": "https://ko-fi.com/ktuban"
+    }
+  ],
   "private": false,
   "type": "module",
-
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
-
   "exports": {
     ".": {
       "import": "./dist/esm/index.js",
@@ -28,42 +26,35 @@
       "types": "./dist/types/index.d.ts"
     }
   },
-
   "files": [
     "dist/**/*",
     "LICENSE",
     "README.md"
   ],
-
   "sideEffects": false,
-
   "engines": {
     "node": ">=18"
   },
-
   "publishConfig": {
     "access": "public"
   },
-
   "scripts": {
     "clean": "rimraf dist",
     "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:types",
     "build:esm": "tsc --project tsconfig.json --outDir dist/esm --module ES2022",
     "build:cjs": "tsc --project tsconfig.json --outDir dist/cjs --module CommonJS --declaration false",
     "build:types": "tsc --project tsconfig.types.json --emitDeclarationOnly --outDir dist/types",
-    "test": "vitest",
     "lint": "eslint . --ext .ts",
     "prepare": "npm run build",
+     "test": "node ./dist/esm/test.js",
     "start": "node ./dist/esm/index.js"
   },
-
   "dependencies": {
     "dompurify": "^3.3.1",
     "dotenv": "^17.2.3",
     "jsdom": "^27.3.0",
     "safe-stable-stringify": "^2.5.0"
   },
-
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
     "@types/dompurify": "^3.2.0",
@@ -74,7 +65,6 @@
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   },
-
   "keywords": [
     "sanitization",
     "security",
@@ -88,15 +78,12 @@
     "backend",
     "typescript"
   ],
-
   "repository": {
     "type": "git",
-    "url": "https://github.com/k/sanitizer.git"
+    "url": "https://github.com/ktuban/sanitizer.git"
   },
-
   "bugs": {
-    "url": "https://github.com/k/sanitizer/issues"
+    "url": "https://github.com/ktuban/sanitizer/issues"
   },
-
-  "homepage": "https://github.com/k/sanitizer#readme"
+  "homepage": "https://github.com/ktuban/sanitizer#readme"
 }

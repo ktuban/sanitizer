@@ -133,6 +133,3 @@ export async function asyncCreateSanitizerSystem(config?: Partial<ISanitizerGlob
   return createSanitizerSystem(config);
 }
 
-// Example:
-// const report = await sanitizationDiagnostics.runAll({ deep: true });
-// console.log(report);

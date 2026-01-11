@@ -1,5 +1,5 @@
 /**
- * Entry Point: @k/sanitizer
+ * Entry Point: @ktuban/sanitizer
  * -------------------------
  * Public API surface for the sanitization framework.
  *
@@ -26,14 +26,4 @@ export * from "./validators/validaters.js";
 // Diagnostics
 export * from "./diagnostics/SanitizerDiagnostics.js";
 
-import { asyncCreateSanitizerSystem } from "./sanitizers/factory.js";
 
-asyncCreateSanitizerSystem().then(async (s)=>{
-const report = await s.diagnostics.runAll({deep:true});
-
-console.log("Diagnostics Summary:");
-console.table(report.summary);
-
-console.log("Detailed Results:");
-console.dir(report.results, { depth: null });
-})
