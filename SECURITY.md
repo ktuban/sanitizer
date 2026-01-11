@@ -80,4 +80,4 @@ If you report a vulnerability, we will:
 ## Contact
 
 - Security advisories: [GitHub Security Advisories](https://github.com/ktuban/sanitizer/security/advisories)  
-- Email: dev.tuban@hotmail.com.com  
+- Email: dev.tuban@hotmail.com

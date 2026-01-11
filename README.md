@@ -7,7 +7,6 @@
 [![Ko‑fi](https://img.shields.io/badge/Support-Ko--fi-red.svg)](https://ko-fi.com/ktuban)
 
 
-
 A high-security, extensible sanitization framework for Node.js and TypeScript.
 
 Designed for production systems that demand **strong guarantees**, **predictable behavior**, and **defense-in-depth** against modern input-based attacks.
@@ -76,7 +75,6 @@ I’ve written it so that:
 You can paste this under **“Usage”** in your README.
 
 ---
-
 # 📦 Usage
 
 `@ktuban/sanitizer` provides three levels of sanitization:
