@@ -1,12 +1,20 @@
 name: Version Packages
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
 
 jobs:
   version:
+    # Only run when:
+    # 1. The PR was merged
+    # 2. The PR branch starts with "changeset-release/"
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'changeset-release/')
+
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create version PR
+      - name: Apply versioning from Changesets
         uses: changesets/action@v1
         with:
           version: true
