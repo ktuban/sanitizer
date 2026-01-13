@@ -2,8 +2,11 @@
   "name": "@ktuban/sanitizer",
   "version": "1.1.0",
   "description": "High-security, extensible sanitization engine with validators, security layers, diagnostics, and environment-aware configuration.",
-  "author": "K Tuban",
   "license": "MIT",
+    "author": {
+    "name": "K",
+    "url": "https://github.com/ktuban"
+  },
   "funding": [
     {
       "type": "paypal",
