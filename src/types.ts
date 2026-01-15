@@ -1,6 +1,22 @@
 // types.ts
 
+export type SanitizeAs =
+  | 'email' | 'password' | 'username' | 'html' | 'html-attribute'
+  | 'plain-text' | 'url' | 'filename' | 'search-query' | 'json'
+  | 'sql-identifier' | 'path' | 'phone' | 'zip-code' | 'credit-card'
+  | 'uuid' | 'base64' | 'hex' | 'ip-address' | 'mongodb-id'
+  | 'currency' | 'percentage' | 'color-hex' | 'date-iso'
+  | 'time-iso' | 'datetime-iso' | 'mongodb-filter' | 'path-safe';
 
+export const SanitizeAsValidTypesValue: SanitizeAs[] = [
+        'email', 'password', 'username', 'html', 'html-attribute',
+        'plain-text', 'url', 'filename', 'search-query', 'json',
+        'sql-identifier', 'path', 'phone', 'zip-code', 'credit-card',
+        'uuid', 'base64', 'hex', 'ip-address', 'mongodb-id',
+        'currency', 'percentage', 'color-hex', 'date-iso',
+        'time-iso', 'datetime-iso', 'mongodb-filter', 'path-safe'
+      ];
+      
 export type SanitizationMode = 'validate-only' | 'sanitize-for-storage';
 export type SecurityLevel = 'low' | 'medium' | 'high' | 'paranoid';
 export type LogLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -74,23 +90,6 @@ export const SECURITY_Constants_Values:ISecurityConstants = {
   MAX_FILENAME_LENGTH: 255,
 };
 
-
-export type SanitizeAs =
-  | 'email' | 'password' | 'username' | 'html' | 'html-attribute'
-  | 'plain-text' | 'url' | 'filename' | 'search-query' | 'json'
-  | 'sql-identifier' | 'path' | 'phone' | 'zip-code' | 'credit-card'
-  | 'uuid' | 'base64' | 'hex' | 'ip-address' | 'mongodb-id'
-  | 'currency' | 'percentage' | 'color-hex' | 'date-iso'
-  | 'time-iso' | 'datetime-iso' | 'mongodb-filter' | 'path-safe';
-
-export const SanitizeAsValidTypesValue: SanitizeAs[] = [
-        'email', 'password', 'username', 'html', 'html-attribute',
-        'plain-text', 'url', 'filename', 'search-query', 'json',
-        'sql-identifier', 'path', 'phone', 'zip-code', 'credit-card',
-        'uuid', 'base64', 'hex', 'ip-address', 'mongodb-id',
-        'currency', 'percentage', 'color-hex', 'date-iso',
-        'time-iso', 'datetime-iso', 'mongodb-filter', 'path-safe'
-      ];
       
 /* ============================
    Validation Strategies (Pattern)

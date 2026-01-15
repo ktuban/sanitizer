@@ -318,40 +318,54 @@ export class CharacterSecurity {
    ============================ */
 
 export class StringConverter {
-  static toString(input: unknown, sanitizeAs: SanitizeAs): { value: string; warnings: string[] } {
+  static toString(
+    input: unknown,
+    sanitizeAs: SanitizeAs
+  ): { value: string; warnings: string[] } {
     const warnings: string[] = [];
 
+    // null / undefined
     if (input == null) return { value: '', warnings };
 
+    // Already a string
     if (typeof input === 'string') return { value: input, warnings };
 
+    // Primitive types
     if (typeof input === 'number' || typeof input === 'boolean' || typeof input === 'bigint') {
       return { value: String(input), warnings };
     }
 
-    if (Array.isArray(input)) {
-      const result = input.map(item => this.toString(item, sanitizeAs).value).join('');
-      warnings.push('Array was coerced to string');
-      return { value: result, warnings };
+    // Dates
+    if (input instanceof Date) {
+      return { value: input.toISOString(), warnings };
     }
 
-    if (typeof input === 'object') {
-      if (sanitizeAs !== 'json') {
-        warnings.push(
-          `Object was coerced to string for sanitizeAs: "${sanitizeAs}". ` +
-          `Consider using sanitizeAs: "json" for structured data.`
-        );
-      }
+    // Buffers
+    if (Buffer.isBuffer(input)) {
+      return { value: input.toString('base64'), warnings };
+    }
 
+    // Arrays → ALWAYS JSON
+    if (Array.isArray(input)) {
       try {
-        const result = stringify(input) || '';
-        return { value: result, warnings };
+        return { value: stringify(input) || '[]', warnings };
+      } catch {
+        warnings.push('Array stringification failed');
+        return { value: '[]', warnings };
+      }
+    }
+
+    // Objects → ALWAYS JSON
+    if (typeof input === 'object') {
+      try {
+        return { value: stringify(input) || '{}', warnings };
       } catch {
         warnings.push('Object stringification failed');
-        return { value: '[Object]', warnings };
+        return { value: '{}', warnings };
       }
     }
 
+    // Fallback
     return { value: String(input), warnings };
   }
 }
