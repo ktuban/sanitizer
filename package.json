@@ -1,6 +1,6 @@
 {
   "name": "@ktuban/sanitizer",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "High-security, extensible sanitization engine with validators, security layers, diagnostics, and environment-aware configuration.",
   "license": "MIT",
     "author": {
