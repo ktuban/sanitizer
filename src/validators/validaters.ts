@@ -3,11 +3,10 @@ import { JSDOM } from 'jsdom';
 import createDOMPurify from 'dompurify';
 //import type  DOMPurify  from 'dompurify';
 import { SanitizeAs, ValidationStrategy, ISanitizationOptions, ISanitizerGlobalConfig,
- SanitizationMode, SecurityLevel, IAuditLogEntry, ISecurityEvent,
- SanitizeAsValidTypesValue,
- recommendedSecurityLevelsValue,
+ IAuditLogEntry, ISecurityEvent,
  SECURITY_Constants_Values,
- IAuditLoggerConfig} from '../types.js';
+ IAuditLoggerConfig,
+ IAbusePreventionConfig} from '../types.js';
 import stringify from "safe-stable-stringify"; 
 import path from 'node:path';
 
@@ -2563,10 +2562,13 @@ export class AbusePrevention {
   private blockedIPs = new Map<string, number>();
   private requestCounts = new Map<string, { count: number; timestamp: number }>();
   private suspiciousPatterns: string[] = [];
-  private config = {
+  private config: IAbusePreventionConfig = {
+    enabled: true,
     requestsPerMinute: 60,
     blockDurationMs: 300000, // 5 minutes
     cleanupIntervalMs: 60000, // Cleanup every minute
+    suspiciousPatterns: []//['<script>', 'javascript:', 'eval(', 'union select'],
+
   };
 
   constructor() {
@@ -2621,7 +2623,7 @@ export class AbusePrevention {
     reasons: string[] 
   } {
     const reasons: string[] = [];
-    
+  
     // Common attack patterns
     const patterns = [
       { pattern: /<script/i, reason: 'Potential script injection' },
@@ -2659,14 +2661,15 @@ export class AbusePrevention {
     }
 
     // Check custom suspicious patterns
-    for (const pattern of this.suspiciousPatterns) {
+    for (const pattern of this.config.suspiciousPatterns) {
       try {
         const regex = new RegExp(pattern, 'i');
         if (regex.test(input)) {
           reasons.push(`Matches suspicious pattern: ${pattern}`);
         }
-      } catch (error) {
+      } catch (error:any) {
         // Invalid regex pattern, skip
+       console.info!("detectSuspiciousPatterns : error", {error})
       }
     }
 
@@ -2674,6 +2677,7 @@ export class AbusePrevention {
   }
 
   configure(config: Partial<typeof this.config & { suspiciousPatterns?: string[] }>): void {
+    if(config){
     if (config.requestsPerMinute !== undefined) {
       this.config.requestsPerMinute = config.requestsPerMinute;
     }
@@ -2681,8 +2685,12 @@ export class AbusePrevention {
       this.config.blockDurationMs = config.blockDurationMs;
     }
     if (config.suspiciousPatterns) {
-      this.suspiciousPatterns = config.suspiciousPatterns;
+      this.config.suspiciousPatterns = config.suspiciousPatterns;
     }
+    if(config.cleanupIntervalMs){
+      this.config.cleanupIntervalMs = config.cleanupIntervalMs;
+    }
+  }
   }
 
   getStatus(): { blockedIPs: number; activeRequests: number; lastCleanup?: string } {
@@ -2727,15 +2735,17 @@ export class SecurityAuditLogger {
   private lastHash: string = "";
   private queue: IAuditLogEntry[] = [];
   private processing = false;
-
-  private config = {
+  
+  private config:IAuditLoggerConfig = {
     enabled: true,
-    logLevel: "medium" as "low" | "medium" | "high" | "all",
+    logLevel: "medium", 
     destination: "console" as "console" | "file" | "remote",
     maxLogs: 10000,
     filePath: "./logs/security-audit.log",
     remoteEndpoint: "https://logs.example.com/audit",
     redactFields: ["password", "token", "authorization", "creditCard"],
+    retentionDays: 30,
+    alertOn: ['CRITICAL'],
   };
 
 
@@ -2753,6 +2763,7 @@ export class SecurityAuditLogger {
   }
 
   private constructor(config?: Partial<IAuditLoggerConfig>) {
+   
     Object.assign(this.config, config);
   }
 
@@ -2858,8 +2869,8 @@ export class SecurityAuditLogger {
       case "console":
         const consoleMethod =
           entry.severity === "CRITICAL" || entry.severity === "HIGH"
-            ? console.error
-            : console.warn;
+            ? console.error!
+            : console.warn!;
         consoleMethod(`[${entry.severity}] ${entry.type}: ${entry.message}`, entry.details || "");
         break;
 

@@ -3,8 +3,8 @@
   "version": "1.1.1",
   "description": "High-security, extensible sanitization engine with validators, security layers, diagnostics, and environment-aware configuration.",
   "license": "MIT",
-    "author": {
-    "name": "K",
+  "author": {
+    "name": "K Tuban",
     "url": "https://github.com/ktuban"
   },
   "funding": [
@@ -49,7 +49,7 @@
     "build:types": "tsc --project tsconfig.types.json --emitDeclarationOnly --outDir dist/types",
     "lint": "eslint . --ext .ts",
     "prepare": "npm run build",
-     "test": "node ./dist/esm/test.js",
+    "test": "node ./dist/esm/test.js",
     "start": "node ./dist/esm/index.js"
   },
   "dependencies": {

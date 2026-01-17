@@ -19,7 +19,7 @@ export const SanitizeAsValidTypesValue: SanitizeAs[] = [
       
 export type SanitizationMode = 'validate-only' | 'sanitize-for-storage';
 export type SecurityLevel = 'low' | 'medium' | 'high' | 'paranoid';
-export type LogLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type LogLevel = 'low' | 'medium' | 'high' | 'all';
 export type ErrorHandling = 'throw' | 'return-default' | 'return-original';
 
 export type ISecurityConstants ={
@@ -150,12 +150,7 @@ export interface ISanitizerGlobalConfig{
   htmlDefaults: IHtmlSanitizationConfig
   
   // Rate limiting configuration
-  rateLimiting: {
-    enabled: boolean;
-    requestsPerMinute: number;
-    blockDurationMs: number;
-    suspiciousPatterns: string[];
-  };
+  rateLimiting: IAbusePreventionConfig
   
   // Audit logging configuration
   auditLogging: IAuditLoggerConfig
@@ -166,7 +161,6 @@ export interface ISanitizerGlobalConfig{
     maxCacheSize: number;
     cleanupIntervalMs: number;
   };
-  
   // Environment-specific overrides
   environmentOverrides: Partial<Record<string, Partial<ISanitizerGlobalConfig>>>;
 }
@@ -193,10 +187,17 @@ export interface ISecurityEvent {
   requestId?:string
 }
 
-
+export type IAbusePreventionConfig ={
+    enabled: boolean;
+    requestsPerMinute: number;
+    blockDurationMs: number;
+    cleanupIntervalMs: number;
+    suspiciousPatterns: string[];
+  };
+ 
 export type IAuditLoggerConfig ={
     enabled: boolean;
-    logLevels: LogLevel[];
+    logLevel: LogLevel;
     destination: 'console' | 'file' | 'remote';
     maxLogs: number;
     retentionDays: number;

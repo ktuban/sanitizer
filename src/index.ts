@@ -26,4 +26,16 @@ export * from "./validators/validaters.js";
 // Diagnostics
 export * from "./diagnostics/SanitizerDiagnostics.js";
 
+// test
+/*
+import { asyncCreateSanitizerSystem } from "./sanitizers/factory.js";
+
+asyncCreateSanitizerSystem().then(async (s)=> {
+    let report = await s.diagnostics.runAll({deep:true})
+    console.log(report)
+    console.log(s.security.exportAuditLogs("json"));
+});
+
+*/
+
 

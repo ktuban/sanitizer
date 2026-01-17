@@ -57,25 +57,13 @@ export function createConfiguredSecuritySanitizer(
   // Initialize config + core sanitizer
   const core = createCoreOnlySanitizer(config);
   // Plugins
-  SecurityAuditLogger.initialize({
-  enabled: core.config.auditLogging.enabled,
-  logLevels: core.config.auditLogging.logLevels[0].toLowerCase() as any,
-  destination: core.config.auditLogging.destination,
-  maxLogs: core.config.auditLogging.maxLogs,
-  filePath: core.config.auditLogging.filePath,
-  remoteEndpoint: core.config.auditLogging.remoteEndpoint,
-});
+  SecurityAuditLogger.initialize(core.config.auditLogging);
 
 const auditLogger = SecurityAuditLogger.getInstance();
   const abusePrevention = new AbusePrevention();
 
   // Configure plugins from global config
-  abusePrevention.configure({
-    requestsPerMinute: core.config.rateLimiting.requestsPerMinute,
-    blockDurationMs: core.config.rateLimiting.blockDurationMs,
-    suspiciousPatterns: core.config.rateLimiting.suspiciousPatterns,
-  });
-
+  abusePrevention.configure(core.config.rateLimiting);
 
   const plugins: SanitizerPlugins = {
     abusePrevention,

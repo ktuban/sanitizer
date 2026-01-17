@@ -20,12 +20,12 @@ import { stringify } from "safe-stable-stringify";
 import { ISanitizerGlobalConfig, ISanitizationOptions, SanitizeAsValidTypesValue, SanitizeAs, SanitizationMode, SecurityLevel, recommendedSecurityLevelsValue } from "../types.js";
 
 
+
 export class ConfigValidator {
   private static globalConfig: ISanitizerGlobalConfig | null = null;
   private static configValidators = new Map<string, (value: any) => boolean>();
   private static environment = process.env['NODE_ENV'] || 'development';
-
-  // ============================================================
+ // ============================================================
   // PUBLIC API
   // ============================================================
 
@@ -40,6 +40,7 @@ export class ConfigValidator {
    * 5. Internal defaults
    */
   static initialize(overrides?: Partial<ISanitizerGlobalConfig>): void {
+
     // 1. Start from internal defaults
     this.globalConfig = this.createDefaultConfig();
 
@@ -300,7 +301,7 @@ export class ConfigValidator {
         cfg.securityLevels.html = 'high';
         cfg.securityLevels['html-attribute'] = 'high';
         cfg.securityLevels['plain-text'] = 'medium';
-        cfg.auditLogging.logLevels = ['CRITICAL', 'HIGH'];
+        cfg.auditLogging.logLevel = 'all';
         return;
 
       case 'development':
@@ -308,8 +309,8 @@ export class ConfigValidator {
         cfg.securityLevels.html = 'medium';
         cfg.securityLevels['html-attribute'] = 'medium';
         cfg.securityLevels['plain-text'] = 'low';
-        cfg.rateLimiting.enabled = false;
-        cfg.auditLogging.enabled = false;
+        cfg.rateLimiting.enabled = true;
+        cfg.auditLogging.enabled = true;
         cfg.securityConstants.MAX_HTML_BYTES = 5 * 1024 * 1024;
         cfg.securityConstants.MAX_JSON_BYTES = 50 * 1024 * 1024;
         return;
@@ -777,13 +778,14 @@ export class ConfigValidator {
       rateLimiting: {
         enabled: true,
         requestsPerMinute: 100,
-        blockDurationMs: 300000,
-        suspiciousPatterns: ['<script>', 'javascript:', 'eval(', 'union select'],
+        suspiciousPatterns: [],//['<script>', 'javascript:', 'eval(', 'union select'],
+        blockDurationMs: 300000, // 5 minutes
+        cleanupIntervalMs: 60000, // Cleanup every minute
       },
 
       auditLogging: {
         enabled: true,
-        logLevels: ['MEDIUM', 'HIGH', 'CRITICAL'],
+        logLevel: "medium",
         destination: 'console',
         maxLogs: 10000,
         retentionDays: 30,
@@ -796,7 +798,6 @@ export class ConfigValidator {
         maxCacheSize: 1000,
         cleanupIntervalMs: 60000,
       },
-
       environmentOverrides: {
         production: {
           auditLogging: {
