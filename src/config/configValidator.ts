@@ -18,6 +18,7 @@
 
 import { stringify } from "safe-stable-stringify";
 import { ISanitizerGlobalConfig, ISanitizationOptions, SanitizeAsValidTypesValue, SanitizeAs, SanitizationMode, SecurityLevel, recommendedSecurityLevelsValue } from "../types.js";
+import { SanitizerError } from "../SanitizerError.js";
 
 
 
@@ -61,7 +62,7 @@ export class ConfigValidator {
     // 6. Validate final configuration
     const errors = this.validateGlobalConfig();
     if (errors.length > 0) {
-      throw new Error(`Invalid configuration: ${errors.join('; ')}`);
+      throw new SanitizerError(`Invalid configuration: ${errors.join('; ')}`);
     }
   }
 
@@ -164,37 +165,37 @@ export class ConfigValidator {
     const c = cfg.securityConstants;
 
     if (bytes > c.MAX_INPUT_BYTES) {
-      throw new Error(
+      throw new SanitizerError(
         `Input too large: ${bytes} bytes exceeds ${c.MAX_INPUT_BYTES}`
       );
     }
 
     if ((type === 'html' || type === 'html-attribute') && bytes > c.MAX_HTML_BYTES) {
-      throw new Error(
+      throw new SanitizerError(
         `HTML input too large: ${bytes} bytes exceeds ${c.MAX_HTML_BYTES}`
       );
     }
 
     if (type === 'json' && bytes > c.MAX_JSON_BYTES) {
-      throw new Error(
+      throw new SanitizerError(
         `JSON input too large: ${bytes} bytes exceeds ${c.MAX_JSON_BYTES}`
       );
     }
 
     if (value.length > c.MAX_STRING_LENGTH) {
-      throw new Error(
+      throw new SanitizerError(
         `Input too long: ${value.length} characters exceeds ${c.MAX_STRING_LENGTH}`
       );
     }
 
     if (type === 'filename' && value.length > c.MAX_FILENAME_LENGTH) {
-      throw new Error(
+      throw new SanitizerError(
         `Filename too long: ${value.length} characters exceeds ${c.MAX_FILENAME_LENGTH}`
       );
     }
 
     if (type === 'credit-card' && bytes > 1024) {
-      throw new Error('Credit card input too large');
+      throw new SanitizerError('Credit card input too large');
     }
   }
 
@@ -221,14 +222,14 @@ export class ConfigValidator {
    */
   static updateConfig(updates: Partial<ISanitizerGlobalConfig>): void {
     if (!this.globalConfig) {
-      throw new Error('ConfigValidator not initialized');
+      throw new SanitizerError('ConfigValidator not initialized');
     }
 
     const merged = this.mergeConfigs(this.globalConfig, updates);
     const errors = this.validateGlobalConfigInternal(merged);
 
     if (errors.length > 0) {
-      throw new Error(`Invalid configuration update: ${errors.join('; ')}`);
+      throw new SanitizerError(`Invalid configuration update: ${errors.join('; ')}`);
     }
 
     this.globalConfig = merged;
@@ -778,7 +779,13 @@ export class ConfigValidator {
       rateLimiting: {
         enabled: true,
         requestsPerMinute: 100,
-        suspiciousPatterns: [],//['<script>', 'javascript:', 'eval(', 'union select'],
+        suspiciousPatterns: [ /(?:--|\/\*|\*\/|@@|\.\.)/,
+      /(?:union|select|insert|update|delete|drop|truncate|alter|create|exec|execute)/i,
+      /(?:<script|<iframe|javascript:|on\w+\s*=)/i,
+      /(?:eval\(|document\.|window\.|alert\(|confirm\(|prompt\()/,
+      /(?:\|\||&&|;|`|\$\(|\n|\r)/,
+      /(?:\.\.\/|\.\.\\|\\\\|file:\/\/)/,
+      /(?:%00|\\x00|\\u0000|\\0)/,],
         blockDurationMs: 300000, // 5 minutes
         cleanupIntervalMs: 60000, // Cleanup every minute
       },

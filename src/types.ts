@@ -192,7 +192,7 @@ export type IAbusePreventionConfig ={
     requestsPerMinute: number;
     blockDurationMs: number;
     cleanupIntervalMs: number;
-    suspiciousPatterns: string[];
+    suspiciousPatterns: RegExp[];
   };
  
 export type IAuditLoggerConfig ={
@@ -255,11 +255,7 @@ export interface AbusePreventionPlugin {
     type: SanitizeAs
   ): { suspicious: boolean; reasons: string[] };
   getStatus(): { blockedIPs: number; activeRequests: number; lastCleanup?: string };
-  configure(config: {
-    requestsPerMinute?: number;
-    blockDurationMs?: number;
-    suspiciousPatterns?: string[];
-  }): void;
+  configure(config: Partial<IAbusePreventionConfig>): void;
   unblockIP(ipAddress: string): boolean;
 }
 
@@ -269,4 +265,12 @@ export interface AbusePreventionPlugin {
 export interface SanitizerPlugins {
   abusePrevention?: AbusePreventionPlugin;
   auditLogger?: AuditLogger;
+}
+
+
+export interface StringConversionResult {
+  value: string;
+  warnings: string[];
+  metadata?: { originalType: string; conversionType: string; dataLoss?: boolean };
+  isSafe(): boolean;
 }

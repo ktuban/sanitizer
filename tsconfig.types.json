@@ -2,9 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "dist/types",
-    "declaration": true,
     "emitDeclarationOnly": true,
-    "stripInternal": true
+    "stripInternal": true,
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext"
   },
   "include": ["src"]
 }

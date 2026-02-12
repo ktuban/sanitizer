@@ -1,21 +1,37 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    /* Language & Environment */
     "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "Node",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
+    /* Strictness */
     "strict": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
+    "composite": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "noUncheckedIndexedAccess": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    /* Interop */
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "sourceMap": true,
-    "baseUrl": "./src",
-    "paths": {
-      "@ktuban/sanitizer/*": ["./*"]
-    }
+    /* Emit */
+    "declaration": true,
+    /* Project hygiene */
+    "isolatedModules": true
   },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }

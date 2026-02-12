@@ -13,7 +13,9 @@
  */
 // Public types
 export * from "./types.js";
+export * from "./SanitizerError.js";
 
+// Sanitizers
 export * from "./sanitizers/BaseSanitizer.js";
 export * from "./sanitizers/CoreStringSanitizer.js";
 export * from "./sanitizers/SecurityStringSanitizer.js";
@@ -25,6 +27,7 @@ export * from "./validators/validaters.js";
 
 // Diagnostics
 export * from "./diagnostics/SanitizerDiagnostics.js";
+export * from "./diagnostics/SanitizerDiagnostics_Enhanced.js";
 
 // test
 /*

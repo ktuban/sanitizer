@@ -2,7 +2,6 @@
 
 import {
   ISanitizerGlobalConfig,
-  ValidationStrategy,
   SanitizerPlugins,
 } from "../types.js";
 
@@ -16,14 +15,19 @@ import {
 import { CoreStringSanitizer } from "./CoreStringSanitizer.js";
 import { SecurityStringSanitizer } from "./SecurityStringSanitizer.js";
 import { SanitizerDiagnostics } from "../diagnostics/SanitizerDiagnostics.js";
-
+import { SanitizerDiagnostics_Enhanced } from "../diagnostics/SanitizerDiagnostics_Enhanced.js";
 
 /**
  * ============================================================
- * 1. CORE-ONLY SANITIZER (FAST, NO SECURITY LAYERS)
+ * INTERNAL HELPERS (Single source of truth)
  * ============================================================
  */
-export function createCoreOnlySanitizer(
+
+/**
+ * Internal: Initialize core sanitizer
+ * Encapsulates config initialization and validator registry setup
+ */
+function _createCoreOnlySanitizerImpl(
   config?: Partial<ISanitizerGlobalConfig>
 ): CoreStringSanitizer {
   // Initialize global config engine
@@ -36,34 +40,26 @@ export function createCoreOnlySanitizer(
   const registry = new ValidationStrategyRegistry();
   registry.initializeDefaultValidators();
 
-
   // Return pure core sanitizer
   return new CoreStringSanitizer(effectiveConfig, registry);
 }
 
-// Async version
-export const asyncCoreOnlySanitizer = async (
-  config?: Partial<ISanitizerGlobalConfig>
-): Promise<CoreStringSanitizer> => createCoreOnlySanitizer(config);
-
 /**
- * ============================================================
- * 2. FULL SECURITY SANITIZER (DECORATOR + PLUGINS)
- * ============================================================
+ * Internal: Initialize security sanitizer with plugins
+ * Wraps core sanitizer with audit logging and abuse prevention
  */
-export function createConfiguredSecuritySanitizer(
-  config?: Partial<ISanitizerGlobalConfig>
+function _createConfiguredSecuritySanitizerImpl(
+  core: CoreStringSanitizer
 ): SecurityStringSanitizer {
-  // Initialize config + core sanitizer
-  const core = createCoreOnlySanitizer(config);
   // Plugins
   SecurityAuditLogger.initialize(core.config.auditLogging);
-
-const auditLogger = SecurityAuditLogger.getInstance();
+  const auditLogger = SecurityAuditLogger.getInstance();
   const abusePrevention = new AbusePrevention();
 
   // Configure plugins from global config
-  abusePrevention.configure(core.config.rateLimiting);
+  if (core.config.rateLimiting) {
+    abusePrevention.configure(core.config.rateLimiting);
+  }
 
   const plugins: SanitizerPlugins = {
     abusePrevention,
@@ -71,53 +67,239 @@ const auditLogger = SecurityAuditLogger.getInstance();
   };
 
   // Build full security sanitizer (decorator)
-  return new SecurityStringSanitizer(plugins,core);
+  return new SecurityStringSanitizer(plugins, core);
 }
 
-// Async version
-export const asyncConfiguredSecuritySanitizer = async (
-  config?: Partial<ISanitizerGlobalConfig>
-): Promise<SecurityStringSanitizer> => createConfiguredSecuritySanitizer(config);
-
-export function createSanitizerDiagnostics(security:SecurityStringSanitizer){
-  // 3. Diagnostics (tests the full security perimeter)
-  const diagnostics = new SanitizerDiagnostics(security);
-  return diagnostics;
-}
-
-export async function asyncCreateSanitizerDiagnostics(security:SecurityStringSanitizer){
-return createSanitizerDiagnostics(security)
-}
 /**
- * createSanitizerSystem
- * ---------------------
- * Builds the full sanitizer stack:
- *
- * 1. CoreStringSanitizer  (pure sanitization engine)
- * 2. SecurityStringSanitizer (security perimeter)
- * 3. SanitizerDiagnostics (full-suite diagnostics)
- *
- * All instances share:
- * - config
- * - validators
- * - plugins
+ * Internal: Initialize diagnostics
+ * Tests the full security perimeter
  */
-export function createSanitizerSystem(config?: Partial<ISanitizerGlobalConfig>) {
+function _createSanitizerDiagnosticsImpl(
+  security: SecurityStringSanitizer
+): SanitizerDiagnostics {
+  return new SanitizerDiagnostics(security);
+}
 
-  // 2. Security sanitizer (decorator)
-  const security = createConfiguredSecuritySanitizer(config);
+/**
+ * ============================================================
+ * PUBLIC API: SYNC VERSIONS (Primary API - CJS Compatible)
+ * ============================================================
+ */
 
-  // 3. Diagnostics (tests the full security perimeter)
-  const diagnostics = createSanitizerDiagnostics(security);
+/**
+ * Create a pure core-only sanitizer
+ * - Fast, no security layers (audit logging, rate limiting, etc.)
+ * - Suitable for high-throughput, security-sensitive paths
+ * - CJS and ESM compatible (synchronous)
+ *
+ * @param config Optional partial configuration
+ * @returns CoreStringSanitizer instance
+ *
+ * @example
+ * const core = createCoreOnlySanitizer({ environment: 'production' });
+ * const result = await core.sanitize(input, { sanitizeAs: 'email' });
+ */
+export function createCoreOnlySanitizer(
+  config?: Partial<ISanitizerGlobalConfig>
+): CoreStringSanitizer {
+  return _createCoreOnlySanitizerImpl(config);
+}
+
+/**
+ * Create a full security sanitizer with plugins
+ * - Includes audit logging, rate limiting, abuse prevention
+ * - Full security perimeter with observability
+ * - CJS and ESM compatible (synchronous)
+ *
+ * @param config Optional partial configuration
+ * @returns SecurityStringSanitizer instance
+ *
+ * @example
+ * const security = createConfiguredSecuritySanitizer({ environment: 'production' });
+ * const result = await security.sanitize(input, { sanitizeAs: 'email' });
+ */
+export function createConfiguredSecuritySanitizer(
+  config?: Partial<ISanitizerGlobalConfig>
+): SecurityStringSanitizer {
+  const core = _createCoreOnlySanitizerImpl(config);
+  return _createConfiguredSecuritySanitizerImpl(core);
+}
+
+/**
+ * Create a sanitizer with diagnostics suite
+ * - Full system: core + security + diagnostics
+ * - Perfect for testing, validation, and compliance checks
+ * - CJS and ESM compatible (synchronous)
+ *
+ * @param config Optional partial configuration
+ * @returns Object with core, security, and diagnostics
+ *
+ * @example
+ * const system = createSanitizerSystem({ environment: 'production' });
+ * const report = await system.diagnostics.runAll({ deep: true });
+ */
+export function createSanitizerSystem(
+  config?: Partial<ISanitizerGlobalConfig>
+) {
+  const core = _createCoreOnlySanitizerImpl(config);
+  const security = _createConfiguredSecuritySanitizerImpl(core);
+  const diagnostics = _createSanitizerDiagnosticsImpl(security);
 
   return {
-    core:security.core,
+    core,
     security,
     diagnostics,
   };
 }
 
-export async function asyncCreateSanitizerSystem(config?: Partial<ISanitizerGlobalConfig>) {
-  return createSanitizerSystem(config);
+/**
+ * Create a sanitizer diagnostics instance
+ * - Standalone diagnostics for an existing SecurityStringSanitizer
+ * - CJS and ESM compatible (synchronous)
+ *
+ * @param security SecurityStringSanitizer instance
+ * @returns SanitizerDiagnostics instance
+ */
+export function createSanitizerDiagnostics(
+  security: SecurityStringSanitizer
+): SanitizerDiagnostics {
+  return _createSanitizerDiagnosticsImpl(security);
 }
 
+/**
+ * ============================================================
+ * PUBLIC API: ASYNC VERSIONS (Modern async/await pattern)
+ * ============================================================
+ * These are async wrappers around the sync implementations.
+ * Use these when you prefer async/await patterns in async contexts.
+ * Both versions are equivalent in functionality (initialization is synchronous).
+ */
+
+/**
+ * Async version of createCoreOnlySanitizer
+ * @param config Optional partial configuration
+ * @returns Promise<CoreStringSanitizer>
+ *
+ * @example
+ * const core = await createCoreOnlySanitizerAsync({ environment: 'production' });
+ */
+export async function createCoreOnlySanitizerAsync(
+  config?: Partial<ISanitizerGlobalConfig>
+): Promise<CoreStringSanitizer> {
+  return _createCoreOnlySanitizerImpl(config);
+}
+
+/**
+ * Async version of createConfiguredSecuritySanitizer
+ * @param config Optional partial configuration
+ * @returns Promise<SecurityStringSanitizer>
+ *
+ * @example
+ * const security = await createConfiguredSecuritySanitizerAsync({ environment: 'production' });
+ */
+export async function createConfiguredSecuritySanitizerAsync(
+  config?: Partial<ISanitizerGlobalConfig>
+): Promise<SecurityStringSanitizer> {
+  const core = _createCoreOnlySanitizerImpl(config);
+  return _createConfiguredSecuritySanitizerImpl(core);
+}
+
+/**
+ * Async version of createSanitizerSystem
+ * @param config Optional partial configuration
+ * @returns Promise of object with core, security, and diagnostics
+ *
+ * @example
+ * const system = await createSanitizerSystemAsync({ environment: 'production' });
+ */
+export async function createSanitizerSystemAsync(
+  config?: Partial<ISanitizerGlobalConfig>
+) {
+  const core = _createCoreOnlySanitizerImpl(config);
+  const security = _createConfiguredSecuritySanitizerImpl(core);
+  const diagnostics = _createSanitizerDiagnosticsImpl(security);
+
+  return {
+    core,
+    security,
+    diagnostics,
+  };
+}
+
+/**
+ * Async version of createSanitizerDiagnostics
+ * @param security SecurityStringSanitizer instance
+ * @returns Promise<SanitizerDiagnostics>
+ */
+export async function createSanitizerDiagnosticsAsync(
+  security: SecurityStringSanitizer
+): Promise<SanitizerDiagnostics> {
+  return _createSanitizerDiagnosticsImpl(security);
+}
+
+/**
+ * ============================================================
+ * ENHANCED DIAGNOSTICS API
+ * ============================================================
+ */
+
+/**
+ * Create enhanced sanitizer diagnostics with command injection tests
+ * - Includes command injection tests for all 28 sanitizeAs types
+ * - Includes edge case testing (empty strings, null values, very long inputs)
+ * - Includes internationalization testing (Unicode, emoji, RTL text)
+ * - Perfect for comprehensive security testing
+ *
+ * @param security SecurityStringSanitizer instance
+ * @returns SanitizerDiagnostics_EnhancedFinal instance
+ *
+ * @example
+ * const security = await createConfiguredSecuritySanitizerAsync();
+ * const enhanced = createEnhancedSanitizerDiagnostics(security);
+ * const report = await enhanced.runAllEnhanced({ deep: true });
+ */
+export function createEnhancedSanitizerDiagnostics(
+  security: SecurityStringSanitizer
+): SanitizerDiagnostics_Enhanced {
+  return new SanitizerDiagnostics_Enhanced(security);
+}
+
+/**
+ * Async version of createEnhancedSanitizerDiagnostics
+ * @param security SecurityStringSanitizer instance
+ * @returns Promise<SanitizerDiagnostics_EnhancedFinal>
+ */
+export async function createEnhancedSanitizerDiagnosticsAsync(
+  security: SecurityStringSanitizer
+): Promise<SanitizerDiagnostics_Enhanced> {
+  return new SanitizerDiagnostics_Enhanced(security);
+}
+
+/**
+ * Create a sanitizer system with enhanced diagnostics
+ * - Full system: core + security + enhanced diagnostics
+ * - Includes all enhanced tests (command injection, edge cases, internationalization)
+ * - Perfect for comprehensive security validation and compliance checks
+ *
+ * @param config Optional partial configuration
+ * @returns Object with core, security, and enhanced diagnostics
+ *
+ * @example
+ * const system = await createEnhancedSanitizerSystemAsync({ environment: 'production' });
+ * const report = await system.enhancedDiagnostics.runAllEnhanced({ deep: true });
+ */
+export async function createEnhancedSanitizerSystemAsync(
+  config?: Partial<ISanitizerGlobalConfig>
+) {
+  const core = _createCoreOnlySanitizerImpl(config);
+  const security = _createConfiguredSecuritySanitizerImpl(core);
+  const diagnostics = _createSanitizerDiagnosticsImpl(security);
+  const enhancedDiagnostics = new SanitizerDiagnostics_Enhanced(security);
+
+  return {
+    core,
+    security,
+    diagnostics,
+    enhancedDiagnostics,
+  };
+}

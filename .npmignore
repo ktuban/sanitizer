@@ -1,7 +1,7 @@
 src/
 node_modules/
 tsconfig.json
-tsconfig.build.json
+tsconfig.esm.json
 tsconfig.cjs.json
 tsconfig.types.json
 .vscode/
@@ -10,3 +10,6 @@ coverage/
 *.log
 .env
 .env.test
+__tests__/
+.jest/
+jest.config.js

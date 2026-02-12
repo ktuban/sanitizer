@@ -6,9 +6,11 @@ import { SanitizeAs, ValidationStrategy, ISanitizationOptions, ISanitizerGlobalC
  IAuditLogEntry, ISecurityEvent,
  SECURITY_Constants_Values,
  IAuditLoggerConfig,
- IAbusePreventionConfig} from '../types.js';
+ IAbusePreventionConfig, StringConversionResult,
+ SecurityLevel} from '../types.js';
 import stringify from "safe-stable-stringify"; 
 import path from 'node:path';
+import { SanitizerError } from "../SanitizerError.js";
 
 
 let dompurifyInstance: any | null = null;
@@ -315,7 +317,7 @@ export class CharacterSecurity {
 /* ============================
    String Converter
    ============================ */
-
+/*
 export class StringConverter {
   static toString(
     input: unknown,
@@ -366,6 +368,90 @@ export class StringConverter {
 
     // Fallback
     return { value: String(input), warnings };
+  }
+}
+*/
+
+
+export class StringConverter {
+  static toString(
+    input: unknown,
+    sanitizeAs: SanitizeAs,
+    securityLevel: SecurityLevel = "medium"
+  ): StringConversionResult {
+    const warnings: string[] = [];
+    const metadata = securityLevel === "low" ? undefined : {
+      originalType: typeof input,
+      conversionType: "direct",
+      dataLoss: false
+    };
+
+    // Null / undefined
+    if (input == null) {
+      if (metadata) warnings.push("Null/undefined converted to empty string");
+      return { value: "", warnings, metadata, isSafe: () => warnings.length === 0 };
+    }
+
+    // Fast path for primitives
+    switch (typeof input) {
+      case "string": return { value: input, warnings, metadata, isSafe: () => true };
+      case "number":
+        if (!Number.isFinite(input)) {
+          warnings.push("Non-finite number");
+          if (metadata) metadata.dataLoss = true;
+        }
+        return { value: String(input), warnings, metadata, isSafe: () => warnings.length === 0 };
+      case "boolean": return { value: input ? "true" : "false", warnings, metadata, isSafe: () => true };
+      case "bigint":
+        warnings.push("BigInt precision may be lost");
+        if (metadata) metadata.dataLoss = true;
+        return { value: input.toString(), warnings, metadata, isSafe: () => false };
+      case "function":
+      case "symbol":
+        warnings.push(`${typeof input} converted to string`);
+        if (metadata) metadata.dataLoss = true;
+        return { value: String(input), warnings, metadata, isSafe: () => false };
+    }
+
+    // Dates
+    if (input instanceof Date) {
+      if (isNaN(input.getTime())) {
+        warnings.push("Invalid Date");
+        return { value: "Invalid Date", warnings, metadata, isSafe: () => false };
+      }
+      return { value: input.toISOString(), warnings, metadata, isSafe: () => true };
+    }
+
+    // Buffers
+    if (Buffer.isBuffer(input)) {
+      return { value: input.toString("base64"), warnings, metadata, isSafe: () => true };
+    }
+
+    // Arrays
+    if (Array.isArray(input)) {
+      if (sanitizeAs === "json") {
+        return { value: stringify(input) || "[]", warnings, metadata, isSafe: () => true };
+      }
+      warnings.push("Array flattened to string");
+      if (metadata) metadata.dataLoss = true;
+      const sep = sanitizeAs === "search-query" ? " " : ",";
+      return {
+        value: input.map(i => StringConverter.toString(i, sanitizeAs, securityLevel).value).join(sep),
+        warnings,
+        metadata,
+        isSafe: () => false
+      };
+    }
+
+    // Objects
+    if (typeof input === "object") {
+      return { value: stringify(input) || "{}", warnings, metadata, isSafe: () => warnings.length === 0 };
+    }
+
+    // Fallback
+    warnings.push("Unknown type coerced with String()");
+    if (metadata) metadata.dataLoss = true;
+    return { value: String(input), warnings, metadata, isSafe: () => false };
   }
 }
 
@@ -653,7 +739,7 @@ export class HTMLValidator extends BaseValidator {
 
     // Final security check
     if (sanitized.includes('javascript:') || sanitized.includes('data:text/html')) {
-      throw new Error('CRITICAL: Dangerous content detected after HTML sanitization');
+      throw new SanitizerError('CRITICAL: Dangerous content detected after HTML sanitization');
     }
 
     return {
@@ -743,7 +829,7 @@ export class HTMLAttributeValidator extends BaseValidator {
     }
     
     if (result.includes('javascript:') || result.includes('data:text/html')) {
-      throw new Error('CRITICAL: Dangerous content detected after HTML attribute sanitization');
+      throw new SanitizerError('CRITICAL: Dangerous content detected after HTML attribute sanitization');
     }
     
     return {
@@ -863,11 +949,11 @@ export class URLValidator extends BaseValidator {
 
       // Re-validate with strict checks
       if (URLValidator.DANGEROUS_PROTOCOLS.has(protocol)) {
-        throw new Error(`Dangerous protocol blocked: ${url.protocol}`);
+        throw new SanitizerError(`Dangerous protocol blocked: ${url.protocol}`);
       }
       
       if (!URLValidator.ALLOWED_PROTOCOLS.has(protocol)) {
-        throw new Error(`Protocol not allowed: ${url.protocol}`);
+        throw new SanitizerError(`Protocol not allowed: ${url.protocol}`);
       }
 
       // SSRF: hard-block private/reserved/localhost
@@ -876,7 +962,7 @@ export class URLValidator extends BaseValidator {
       this.validateHostname(url.hostname, hostnameErrors, hostnameWarnings);
 
       if (hostnameErrors.length > 0) {
-        throw new Error(`Unsafe hostname blocked: ${hostnameErrors.join('; ')}`);
+        throw new SanitizerError(`Unsafe hostname blocked: ${hostnameErrors.join('; ')}`);
       }
 
       // Normalize URL
@@ -906,7 +992,7 @@ export class URLValidator extends BaseValidator {
       };
       
     } catch (error) {
-      throw new Error(`Invalid URL: ${error instanceof Error ? error.message : String(error)}`);
+      throw new SanitizerError(`Invalid URL: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   
@@ -1402,7 +1488,7 @@ export class CreditCardValidator extends BaseValidator {
   sanitize(value: string, options: ISanitizationOptions): { result: string; transformations: string[]; warnings: string[] } {
     // CRITICAL: Credit cards must NEVER be stored
     if (options.mode === 'sanitize-for-storage') {
-      throw new Error(
+      throw new SanitizerError(
         'PCI DSS VIOLATION: Credit card data must not be stored. ' +
         'Use tokenization service and { mode: "validate-only" } for validation only.'
       );
@@ -1739,7 +1825,7 @@ export class IPAddressValidator extends BaseValidator {
   private isPrivateIPv4(ip: string): boolean {
     const parts = ip.split('.').map(Number);
     const first = parts[0];
-    const second = parts[1];
+    const second = parts[1] || 0;
     
     return (
       first === 10 ||
@@ -1751,8 +1837,8 @@ export class IPAddressValidator extends BaseValidator {
   
   private isReservedIPv4(ip: string): boolean {
     const parts = ip.split('.').map(Number);
-    const first = parts[0];
-    const second = parts[1];
+    const first = parts[0] || 0;
+    const second = parts[1] || 0;
     
     return (
       first === 0 ||
@@ -2350,7 +2436,7 @@ export class MongoDBFilterValidator extends BaseValidator {
       const removedDangerous: string[] = [];
       const removedDollarKeys: string[] = [];
 
-      const cleaned = this.removeDangerousOperators(
+      const cleaned:string = this.removeDangerousOperators(
         parsed,
         [],
         removedDangerous,
@@ -2364,7 +2450,7 @@ export class MongoDBFilterValidator extends BaseValidator {
         transformations.push('dollar-prefixed-keys-removed');
       }
 
-      const result = JSON.stringify(cleaned);
+      const result = stringify(cleaned);
 
       const warnings: string[] = [];
       if (removedDangerous.length > 0) {
@@ -2541,7 +2627,7 @@ export class ValidationStrategyRegistry {
   getStrategy(type: SanitizeAs): ValidationStrategy {
     const strategy = this.strategies.get(type);
     if (!strategy) {
-      throw new Error(
+      throw new SanitizerError(
         `No validation strategy registered for type: "${type}". ` +
         `Supported types: ${Array.from(this.strategies.keys()).join(', ')}`
       );
@@ -2561,13 +2647,21 @@ export class ValidationStrategyRegistry {
 export class AbusePrevention {
   private blockedIPs = new Map<string, number>();
   private requestCounts = new Map<string, { count: number; timestamp: number }>();
-  private suspiciousPatterns: string[] = [];
+  //private suspiciousPatterns: string[] = [];
   private config: IAbusePreventionConfig = {
     enabled: true,
-    requestsPerMinute: 60,
+    requestsPerMinute: 100,
     blockDurationMs: 300000, // 5 minutes
     cleanupIntervalMs: 60000, // Cleanup every minute
-    suspiciousPatterns: []//['<script>', 'javascript:', 'eval(', 'union select'],
+    suspiciousPatterns: [
+      /(?:--|\/\*|\*\/|@@|\.\.)/,
+      /(?:union|select|insert|update|delete|drop|truncate|alter|create|exec|execute)/i,
+      /(?:<script|<iframe|javascript:|on\w+\s*=)/i,
+      /(?:eval\(|document\.|window\.|alert\(|confirm\(|prompt\()/,
+      /(?:\|\||&&|;|`|\$\(|\n|\r)/,
+      /(?:\.\.\/|\.\.\\|\\\\|file:\/\/)/,
+      /(?:%00|\\x00|\\u0000|\\0)/,
+    ],
 
   };
 
@@ -2624,6 +2718,7 @@ export class AbusePrevention {
   } {
     const reasons: string[] = [];
   
+    //if(!input) return { suspicious: reasons.length > 0, reasons };;
     // Common attack patterns
     const patterns = [
       { pattern: /<script/i, reason: 'Potential script injection' },
@@ -2644,7 +2739,7 @@ export class AbusePrevention {
     // Type-specific suspicious patterns
     switch (type) {
       case 'email':
-        if (input.includes('@') && input.split('@')[0].length > 64) {
+        if (input.includes('@') && input.split('@')[0]!.length > 64) {
           reasons.push('Email local part too long');
         }
         break;
@@ -2676,7 +2771,7 @@ export class AbusePrevention {
     return { suspicious: reasons.length > 0, reasons };
   }
 
-  configure(config: Partial<typeof this.config & { suspiciousPatterns?: string[] }>): void {
+  configure(config: Partial<IAbusePreventionConfig>): void {
     if(config){
     if (config.requestsPerMinute !== undefined) {
       this.config.requestsPerMinute = config.requestsPerMinute;
@@ -2757,7 +2852,7 @@ export class SecurityAuditLogger {
 
   static getInstance(): SecurityAuditLogger {
     if (!this.instance) {
-      throw new Error("SecurityAuditLogger not initialized. Call initialize() first.");
+      throw new SanitizerError("SecurityAuditLogger not initialized. Call initialize() first.");
     }
     return this.instance;
   }

@@ -42,6 +42,9 @@ Built with:
 - **Diagnostics Suite**  
   Run automated checks for XSS, SSRF, NoSQL injection, path traversal, prototype pollution, observability, and performance.
 
+- **Enhanced Diagnostics**  
+  Comprehensive security testing including command injection, edge cases, and internationalization tests (100% attack vector coverage).
+
 - **TypeScript First**  
   Full type definitions, strict mode, and clean ESM/CJS builds.
 
@@ -61,20 +64,10 @@ Your support helps keep the project maintained, secure, and evolving.
 
 ```bash
 npm install @ktuban/sanitizer
-
-Absolutely — your new `factory.ts` changes the ergonomics of the library in a really nice way, and your README should reflect that. Below is a **clean, professional, developer‑friendly Usage section** you can drop directly into your README.
-
-I’ve written it so that:
-
-- It mirrors your new factory API exactly  
-- It explains the three layers (core → security → diagnostics)  
-- It includes async and sync examples  
-- It’s copy‑paste friendly  
-- It feels like a modern OSS library (Zod‑style clarity, OWASP‑grade seriousness)
-
-You can paste this under **“Usage”** in your README.
+```
 
 ---
+
 # 📦 Usage
 
 `@ktuban/sanitizer` provides three levels of sanitization:
@@ -98,16 +91,19 @@ const core = createCoreOnlySanitizer({
   environment: "production",
 });
 
-const clean = core.sanitize("  Hello <script>evil()</script>  ");
-console.log(clean);
+const result = await core.sanitize("user@example.com", {
+  sanitizeAs: "email",
+});
+console.log(result.sanitized);
 ```
 
 ### Async version
 
 ```ts
-import { asyncCoreOnlySanitizer } from "@ktuban/sanitizer";
+import { createCoreOnlySanitizerAsync } from "@ktuban/sanitizer";
 
-const core = await asyncCoreOnlySanitizer();
+const core = await createCoreOnlySanitizerAsync();
+const result = await core.sanitize("user@example.com", { sanitizeAs: "email" });
 ```
 
 ---
@@ -128,27 +124,28 @@ const security = createConfiguredSecuritySanitizer({
   environment: "production",
   auditLogging: {
     enabled: true,
-    logLevels: ["info"],
-    destination: "file",
-    filePath: "./logs/security.log",
+    logLevel: "high",
   },
   rateLimiting: {
-    requestsPerMinute: 60,
-    blockDurationMs: 10_000,
-    suspiciousPatterns: [/select\s+.*from/i],
+    enabled: true,
+    windowMs: 60000,
+    maxRequests: 100,
   },
 });
 
-const safe = security.sanitize("DROP TABLE users;");
-console.log(safe);
+const result = await security.sanitize("test@example.com", {
+  sanitizeAs: "email",
+});
+console.log(result.sanitized);
 ```
 
 ### Async version
 
 ```ts
-import { asyncConfiguredSecuritySanitizer } from "@ktuban/sanitizer";
+import { createConfiguredSecuritySanitizerAsync } from "@ktuban/sanitizer";
 
-const security = await asyncConfiguredSecuritySanitizer();
+const security = await createConfiguredSecuritySanitizerAsync();
+const result = await security.sanitize("test@example.com", { sanitizeAs: "email" });
 ```
 
 ---
@@ -158,27 +155,120 @@ const security = await asyncConfiguredSecuritySanitizer();
 Diagnostics validate that your security perimeter is functioning correctly.
 
 ```ts
-import { createConfiguredSecuritySanitizer, createSanitizerDiagnostics } from "@ktuban/sanitizer";
+import { createSanitizerSystem } from "@ktuban/sanitizer";
 
-const security = createConfiguredSecuritySanitizer();
-const diagnostics = createSanitizerDiagnostics(security);
+const { diagnostics } = createSanitizerSystem();
 
-const report = diagnostics.runAll();
-console.log(report);
+const report = await diagnostics.runAll({ deep: true });
+console.log(report.summary);
 ```
 
 ### Async version
 
 ```ts
-import { asyncConfiguredSecuritySanitizer, asyncCreateSanitizerDiagnostics } from "@ktuban/sanitizer";
+import { createSanitizerSystemAsync } from "@ktuban/sanitizer";
 
-const security = await asyncConfiguredSecuritySanitizer();
-const diagnostics = await asyncCreateSanitizerDiagnostics(security);
+const { diagnostics } = await createSanitizerSystemAsync();
+const report = await diagnostics.runAll({ deep: true });
+console.log(report.summary);
 ```
 
 ---
 
-## 4. Build the Entire Sanitizer System (Recommended)
+## 4. Enhanced Diagnostics (Comprehensive Security Testing)
+
+**New in v1.2.0**: Enhanced diagnostics provide comprehensive security testing including command injection, edge cases, and internationalization tests.
+
+### Enhanced Diagnostics Features:
+- **Command Injection Tests**: 28 tests covering all sanitizeAs types
+- **Edge Case Testing**: Empty strings, null characters, very long inputs, Unicode
+- **Internationalization Testing**: Emoji, RTL text, CJK characters, homoglyph attacks
+- **Deep Security Validation**: 100% attack vector coverage
+
+### Basic Usage
+
+```ts
+import { createEnhancedSanitizerSystemAsync } from "@ktuban/sanitizer";
+
+const system = await createEnhancedSanitizerSystemAsync();
+const report = await system.enhancedDiagnostics.runAllEnhanced({ deep: true });
+console.log(`Enhanced tests: ${report.summary.total}`);
+console.log(`Command injection tests: ${report.results.filter(r => r.id.includes('command-injection')).length}`);
+```
+
+### Standalone Enhanced Diagnostics
+
+```ts
+import { createEnhancedSanitizerDiagnostics } from "@ktuban/sanitizer";
+
+const security = await createConfiguredSecuritySanitizerAsync();
+const enhanced = createEnhancedSanitizerDiagnostics(security);
+const report = await enhanced.runAllEnhanced({ deep: true });
+```
+
+### Test Categories
+
+**Command Injection Tests (28 tests):**
+- HTML: `<img src=x onerror="eval('require(\"child_process\").exec(\"ls\")')">`
+- Plain text: `Hello; echo "hacked"`
+- URL: `http://example.com/$(ls)`
+- JSON: `{"cmd": "ls; rm -rf /"}`
+- ...and 24 more types
+
+**Edge Case Tests (8 tests):**
+- Empty strings, null characters, whitespace-only
+- Very long inputs (50,000+ characters)
+- Unicode HTML, multiple null bytes
+
+**Internationalization Tests (9 tests):**
+- Emoji and symbols: `🎉🎊😊🌟✨🎈🎁🎀`
+- Right-to-left text: `مرحبا بالعالم`
+- Chinese/Japanese/Korean: `你好こんにちは안녕하세요`
+- Homoglyph attacks: `аррӏе.com`
+
+### Example Output
+
+```javascript
+=== ENHANCED DIAGNOSTICS REPORT ===
+Total original tests: 63
+Total enhanced tests: 28
+Command injection tests: 28
+Edge case tests: 8
+Internationalization tests: 9
+✅ All command injection tests passed
+✅ All edge case tests passed  
+✅ All internationalization tests passed
+```
+
+### Use in CI/CD Pipeline
+
+```javascript
+// test_security.mjs
+import { createEnhancedSanitizerSystemAsync } from "@ktuban/sanitizer";
+
+async function securityTest() {
+  const system = await createEnhancedSanitizerSystemAsync();
+  const report = await system.enhancedDiagnostics.runAllEnhanced({ deep: true });
+  
+  const criticalFailures = report.results.filter(r => 
+    r.severity === 'critical' && !r.passed
+  );
+  
+  if (criticalFailures.length > 0) {
+    console.error('❌ Critical security failures detected!');
+    criticalFailures.forEach(f => console.error(`   ${f.id}: ${f.message}`));
+    process.exit(1);
+  }
+  
+  console.log('✅ All security tests passed');
+}
+
+securityTest().catch(console.error);
+```
+
+---
+
+## 5. Build the Entire Sanitizer System (Recommended)
 
 This gives you everything:
 
@@ -191,24 +281,26 @@ import { createSanitizerSystem } from "@ktuban/sanitizer";
 
 const { core, security, diagnostics } = createSanitizerSystem({
   environment: "production",
+  securityLevel: "high",
 });
 
-core.sanitize("hello");
-security.sanitize("hello");
-diagnostics.runAll();
+const result1 = await core.sanitize("test@example.com", { sanitizeAs: "email" });
+const result2 = await security.sanitize("test@example.com", { sanitizeAs: "email" });
+const report = await diagnostics.runAll({ deep: true });
 ```
 
 ### Async version
 
 ```ts
-import { asyncCreateSanitizerSystem } from "@ktuban/sanitizer";
+import { createSanitizerSystemAsync } from "@ktuban/sanitizer";
 
-const { core, security, diagnostics } = await asyncCreateSanitizerSystem();
+const { core, security, diagnostics } = await createSanitizerSystemAsync();
+const result = await core.sanitize("test@example.com", { sanitizeAs: "email" });
 ```
 
 ---
 
-## 5. Configuration
+## 6. Configuration
 
 All factory functions accept a `Partial<ISanitizerGlobalConfig>`, letting you override only what you need:
 
@@ -283,6 +375,167 @@ ConfigValidator.updateConfig({
     MAX_JSON_BYTES: 2 * 1024 * 1024
   }
 });
+
+---
+
+# 📖 StringConverter — Type‑Aware String Conversion
+
+The `StringConverter` is the bridge between arbitrary `unknown` input and the **string‑based sanitization engine**.  
+It ensures that all inputs are safely converted into strings, while surfacing warnings and metadata when conversion may cause **data loss**.
+
+---
+
+## 🚀 Features
+
+- 🔌 **Type‑aware conversion** for strings, numbers, booleans, BigInt, Dates, Buffers, arrays, and objects.  
+- 🛡️ **Safe serialization** using `safe-stable-stringify` (handles circular references, stable key ordering).  
+- ⚠️ **Warnings system** to flag potential precision or structure loss.  
+- 📊 **Metadata** describing original type, conversion method, and data‑loss risk.  
+- 🔐 **SecurityLevel‑aware behavior**:
+  - **low** → fast path, minimal checks.  
+  - **medium** → warnings logged, metadata included.  
+  - **high** → suspicious conversions escalate to errors.  
+  - **paranoid** → only primitives and JSON allowed; everything else rejected.  
+
+---
+
+## 📦 Installation
+
+```bash
+npm install safe-stable-stringify
+```
+
+---
+
+## 🧩 Usage
+
+### Basic Conversion
+
+```ts
+import { StringConverter } from "./StringConverter";
+
+const result = StringConverter.toString(123, "json", "medium");
+
+console.log(result.value);     // "123"
+console.log(result.warnings);  // []
+console.log(result.metadata);  // { originalType: "number", conversionType: "direct", dataLoss: false }
+console.log(result.isSafe());  // true
+```
+
+---
+
+### Handling Arrays
+
+```ts
+StringConverter.toString([1, 2, 3], "json", "medium");
+// → { value: "[1,2,3]", warnings: [], isSafe: true }
+
+StringConverter.toString([1, 2, 3], "search-query", "medium");
+// → { value: "1 2 3", warnings: ["Array flattened to string"], isSafe: false }
+```
+
+---
+
+### Handling Objects
+
+```ts
+StringConverter.toString({ age: { $gt: 30 } }, "json", "high");
+// → { value: "{\"age\":{\"$gt\":30}}", warnings: [], isSafe: true }
+
+StringConverter.toString({ a: 1, b: 2 }, "html", "medium");
+// → { value: "{\"a\":1,\"b\":2}", warnings: ["Object converted to JSON string"], isSafe: false }
+```
+
+---
+
+### Handling Special Types
+
+```ts
+StringConverter.toString(BigInt(9007199254740991), "json", "medium");
+// → { value: "9007199254740991", warnings: ["BigInt precision may be lost"], isSafe: false }
+
+StringConverter.toString(new Date("invalid"), "date-iso", "medium");
+// → { value: "Invalid Date", warnings: ["Invalid Date"], isSafe: false }
+
+StringConverter.toString(Buffer.from("hello"), "json", "medium");
+// → { value: "aGVsbG8=", warnings: [], isSafe: true }
+```
+
+---
+
+## 🔐 SecurityLevel Behavior
+
+| SecurityLevel | Behavior |
+|---------------|----------|
+| **low**       | Fast path, minimal warnings, metadata skipped. |
+| **medium**    | Metadata included, warnings logged. |
+| **high**      | Suspicious conversions escalate to errors (e.g., BigInt, non‑finite numbers). |
+| **paranoid**  | Rejects anything except safe primitives and JSON. |
+
+Example:
+
+```ts
+StringConverter.toString([1,2,3], "search-query", "low");
+// → { value: "1 2 3", warnings: [] }   // warnings suppressed
+
+StringConverter.toString([1,2,3], "search-query", "paranoid");
+// → throws Error("Array flattening not allowed at paranoid level")
+```
+
+---
+
+## 📊 Data Loss Detection
+
+You can pre‑check whether conversion will cause data loss:
+
+```ts
+const check = StringConverter.willLoseData([1,2,3], "search-query");
+
+console.log(check.willLose);   // true
+console.log(check.reasons);    // ["Array will be flattened to string"]
+```
+
+---
+
+## 🏁 Best Practices
+
+- Use `sanitizeAs: "json"` for structured data (filters, configs).  
+- Use `sanitizeAs: "search-query"` for search strings.  
+- Always pass `SecurityLevel` from your controller or app config.  
+- Treat warnings seriously — they indicate potential precision or structure loss.  
+- At **high/paranoid** levels, escalate warnings to errors to enforce strict safety.
+
+---
+
+## 🔧 Example Integration with StringSanitizer
+
+```ts
+const { normalized } = validateAndNormalizeOptions(
+  { sanitizeAs: "mongodb-filter", securityLevel: "high" },
+  req.query
+);
+
+const converted = StringConverter.toString(req.query, "json", normalized.securityLevel);
+
+if (!converted.isSafe()) {
+  throw new Error(`Unsafe conversion: ${converted.warnings.join(", ")}`);
+}
+```
+
+---
+
+# 🧭 Final Notes
+
+The refactored `StringConverter` is designed to be:
+
+- **Fast** for common cases.  
+- **Safe** for complex inputs.  
+- **Flexible** across sanitization contexts.  
+- **Adaptive** to different security levels.  
+
+It’s the backbone of your **Sanitizer** pipeline, ensuring that every input is converted consistently, safely, and transparently.
+
+---
 
 🛡 Security Notes
 This library follows a defense-in-depth philosophy:

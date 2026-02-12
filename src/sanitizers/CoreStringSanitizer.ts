@@ -12,6 +12,7 @@ import {
   BaseSanitizer,
   NormalizedSanitizationOptions,
 } from "./BaseSanitizer.js";
+import { SanitizerError } from "../SanitizerError.js";
 
 import { CharacterSecurity, ValidationStrategyRegistry } from "../validators/validaters.js";
 
@@ -43,9 +44,9 @@ import { CharacterSecurity, ValidationStrategyRegistry } from "../validators/val
 export class CoreStringSanitizer extends BaseSanitizer {
   constructor(
     /** Global configuration (shared across all sanitizers & diagnostics) */
-    public readonly config: ISanitizerGlobalConfig,
+     config: ISanitizerGlobalConfig,
     /** Validator registry (shared) */
-    public readonly validationRegistry: ValidationStrategyRegistry
+     validationRegistry: ValidationStrategyRegistry
   ) {
     super(config, validationRegistry);
   }
@@ -85,7 +86,7 @@ export class CoreStringSanitizer extends BaseSanitizer {
     if (!result.isValid) {
       switch (options.onError || "throw") {
         case "throw":
-          throw new Error(`Sanitization failed: ${result.errors.join("; ")}`);
+          throw new SanitizerError(`Sanitization failed: ${result.errors.join("; ")}`);
         case "return-default":
           return options.defaultValue || "";
         case "return-original":

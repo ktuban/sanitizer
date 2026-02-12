@@ -11,6 +11,7 @@ import {
 
 import { ConfigValidator } from "../config/configValidator.js";
 import { StringConverter, ValidationStrategyRegistry } from "../validators/validaters.js";
+import { SanitizerError } from "../SanitizerError.js";
 
 /**
  * Normalized sanitization options.
@@ -89,7 +90,7 @@ export abstract class BaseSanitizer {
     const validation = ConfigValidator.validateOptions(options);
 
     if (!validation.valid) {
-      throw new Error(`Invalid configuration: ${validation.errors.join("; ")}`);
+      throw new SanitizerError(`Invalid configuration: ${validation.errors.join("; ")}`);
     }
 
     // 2. Resolve mode + security level
@@ -100,7 +101,7 @@ export abstract class BaseSanitizer {
 
     // 3. Credit card storage restriction
     if (options.sanitizeAs === "credit-card" && mode === "sanitize-for-storage") {
-      throw new Error(
+      throw new SanitizerError(
         'Credit card data must not be stored. Use { mode: "validate-only" }.'
       );
     }
@@ -129,7 +130,7 @@ export abstract class BaseSanitizer {
     // 6. Resolve strategy
     const strategy = this.validationRegistry.getStrategy(options.sanitizeAs);
     if (!strategy) {
-      throw new Error(
+      throw new SanitizerError(
         `No validator registered for sanitizeAs='${options.sanitizeAs}'`
       );
     }

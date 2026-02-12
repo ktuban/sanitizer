@@ -15,6 +15,7 @@ import { ValidationStrategyRegistry } from "../validators/validaters.js";
 
 import { BaseSanitizer } from "./BaseSanitizer.js";
 import { CoreStringSanitizer } from "./CoreStringSanitizer.js";
+import { SanitizerError } from "../SanitizerError.js";
 
 /**
  * SecurityStringSanitizer
@@ -81,7 +82,7 @@ export class SecurityStringSanitizer  {
             userId: context?.userId,
             ipAddress: context?.ipAddress,
           });
-          throw new Error(`Rate limit exceeded: ${rateLimit.message}`);
+          throw new SanitizerError(`Rate limit exceeded: ${rateLimit.message}`);
         
         }
       }
@@ -108,7 +109,7 @@ export class SecurityStringSanitizer  {
             userId: context?.userId,
             ipAddress: context?.ipAddress,
           });
-          throw new Error(`Rate limit exceeded: ${rateLimit.message}`);
+          throw new SanitizerError(`Rate limit exceeded: ${rateLimit.message}`);
         }
       }
       */
@@ -278,7 +279,7 @@ export class SecurityStringSanitizer  {
     if (!result.isValid) {
       switch (options.onError || "throw") {
         case "throw":
-          throw new Error(`Sanitization failed: ${result.errors.join("; ")}`);
+          throw new SanitizerError(`Sanitization failed: ${result.errors.join("; ")}`);
         case "return-default":
           return options.defaultValue || "";
         case "return-original":
